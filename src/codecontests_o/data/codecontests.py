@@ -242,7 +242,8 @@ class CodeContestsReader(DatasetReader):
                 return None
         
         # Get generator and checker
-        generator = raw_data.get('generator_refined', raw_data.get('generator', ''))
+        # generator = raw_data.get('generator_refined', raw_data.get('generator', ''))
+        generator = None
         checker = raw_data.get('checker', None)
         
         return Sample(

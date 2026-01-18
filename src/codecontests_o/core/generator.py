@@ -10,6 +10,7 @@ import queue
 import threading
 import time
 import random
+import base64
 from typing import List, Dict, Tuple, Any
 from collections import Counter
 
@@ -23,9 +24,11 @@ from ..parallel.api_pool import acquire_api, release_api
 from ..prompts.templates import (
     SYSTEM_PROMPT,
     TESTLIB_HEADER_COMMENT,
-    INIT_PROMPT_TEMPLATE,
+    INIT_PROMPT_TEMPLATE_WITH_GENERATOR,
+    INIT_PROMPT_TEMPLATE_WITHOUT_GENERATOR,
     REFINE_PROMPT_TEMPLATE,
-    INIT_RESPONSE_TEMPLATE,
+    INIT_RESPONSE_TEMPLATE_WGEN,
+    INIT_RESPONSE_TEMPLATE_WOGEN,
     REFINE_RESPONSE_TEMPLATE,
     SOLUTION_RESULT_TEMPLATE,
     TEST_CASE_RESULT_TEMPLATE,
@@ -72,7 +75,7 @@ class CornerCaseGenerator:
         output_workers: int = 4,
         validation_workers: int = 4,
         only_generate: bool = False,
-        validator=None,
+        validator = None,
         results_dir: str = ""
     ) -> Tuple[List[TestCase], List[str], List[IterationResult]]:
         """
@@ -168,11 +171,25 @@ class CornerCaseGenerator:
             messages = all_results[-1].messages
             log_sample(sample_id, f"Restored messages from previous iteration")
         else:
-            prompt = INIT_PROMPT_TEMPLATE.format(
-                testlib_header=TESTLIB_HEADER_COMMENT,
-                problem_statement=sample.problem_statement,
-                generator=sample.generator
-            )
+            if sample.generator and sample.generator.strip():
+                prompt = INIT_PROMPT_TEMPLATE_WITH_GENERATOR.format(
+                    testlib_header=TESTLIB_HEADER_COMMENT,
+                    problem_statement=sample.problem_statement,
+                    generator=sample.generator
+                )
+            else:
+                testlib_content = TESTLIB_HEADER_COMMENT
+                if "testlib.h" in self.testlib_files:
+                    try:
+                        testlib_content = base64.b64decode(self.testlib_files["testlib.h"]).decode('utf-8')
+                    except Exception as e:
+                        log_sample(sample_id, f"Error decoding testlib.h: {e}")
+
+                prompt = INIT_PROMPT_TEMPLATE_WITHOUT_GENERATOR.format(
+                    problem_statement=sample.problem_statement,
+                    testlib_content=testlib_content
+                )
+
             messages = [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
@@ -207,7 +224,8 @@ class CornerCaseGenerator:
                 command_response = InitCommandModel(
                     input_constraints_summary=input_constraints_summary,
                     command_list=commands,
-                    search_replace_generator_blocks=search_replace_blocks
+                    search_replace_generator_blocks=search_replace_blocks,
+                    generator=current_generator if not search_replace_blocks else None
                 )
 
             else:
@@ -234,11 +252,17 @@ class CornerCaseGenerator:
                 # Parse commands
                 search_replace_blocks = command_response.search_replace_generator_blocks or []
                 unmatched_blocks = []
+                is_generator_updated = False
 
-                if search_replace_blocks:
+                if hasattr(command_response, 'generator') and command_response.generator:
+                    current_generator = command_response.generator
+                    is_generator_updated = True
+                    log_sample(sample_id, "Received generated generator")
+                elif search_replace_blocks:
                     current_generator, unmatched_blocks = apply_code_patches(
                         current_generator, search_replace_blocks
                     )
+                    is_generator_updated = True
                     log_sample(sample_id, f"Applied {len(search_replace_blocks)} patches")
                     if unmatched_blocks:
                         log_sample(sample_id, f"Warning: {len(unmatched_blocks)} patches unmatched")
@@ -331,7 +355,7 @@ class CornerCaseGenerator:
                 commands_add=commands_add,
                 commands_replace=commands_replace,
                 case_inputs=case_inputs,
-                improved_generator=current_generator if search_replace_blocks else "",
+                improved_generator=current_generator if is_generator_updated else "",
                 search_replace_blocks=search_replace_blocks,
                 unmatched_blocks=[str(b) for b in unmatched_blocks],
                 input_constraints_summary=input_constraints_summary if is_first else "",
@@ -361,9 +385,10 @@ class CornerCaseGenerator:
                 output_errors=output_errors,
                 validation_result=validation_result,
                 input_constraints_summary=input_constraints_summary,
-                improved_generator=current_generator if search_replace_blocks else "",
+                improved_generator=current_generator if is_generator_updated else "",
                 all_search_replace_blocks=all_search_replace_blocks,
                 is_first=is_first,
+                is_generator_updated=is_generator_updated,
                 current_generator=current_generator
             )
         
@@ -613,6 +638,7 @@ class CornerCaseGenerator:
         improved_generator: str,
         all_search_replace_blocks: List[str],
         is_first: bool,
+        is_generator_updated: bool,
         current_generator: str = ""
     ) -> List[Dict]:
         """Prepare feedback messages for the next iteration"""
@@ -674,11 +700,18 @@ class CornerCaseGenerator:
         # Message compression logic
         if is_first:
             # First iteration: use initial response template
-            assistant_response = INIT_RESPONSE_TEMPLATE.format(
-                input_constraints_summary=json.dumps(command_response.input_constraints_summary),
-                search_replace_generator_blocks=json.dumps(command_response.search_replace_generator_blocks),
-                command_list=json.dumps(command_response.command_list)
-            )
+            if hasattr(command_response, 'generator') and command_response.generator:
+                assistant_response = INIT_RESPONSE_TEMPLATE_WOGEN.format(
+                    input_constraints_summary=json.dumps(command_response.input_constraints_summary),
+                    generator=json.dumps(command_response.generator),
+                    command_list=json.dumps(command_response.command_list)
+                )
+            else:
+                assistant_response = INIT_RESPONSE_TEMPLATE_WGEN.format(
+                    input_constraints_summary=json.dumps(command_response.input_constraints_summary),
+                    search_replace_generator_blocks=json.dumps(command_response.search_replace_generator_blocks),
+                    command_list=json.dumps(command_response.command_list)
+                )
             # Build feedback prompt
             refine_prompt = REFINE_PROMPT_TEMPLATE.format(
                 improved_generator=improved_generator,
@@ -691,16 +724,32 @@ class CornerCaseGenerator:
                 outputs=formatted_output_errors
             )
         elif self.compress_messages and len(messages) >= 4:
-            # Message compression mode: remove the last two messages, use accumulated search_replace_blocks
+            # Message compression mode: remove the last two messages
             messages = messages[:-2]
-            assistant_response = INIT_RESPONSE_TEMPLATE.format(
-                input_constraints_summary=json.dumps(input_constraints_summary),
-                search_replace_generator_blocks=json.dumps(all_search_replace_blocks),
-                command_list=json.dumps(commands)
-            )
+
             # In compression mode, use accumulated final generator
-            # current_generator parameter is cumulatively updated, displayed as long as all_search_replace_blocks is not empty
-            final_improved_generator = current_generator if all_search_replace_blocks else ""
+            # current_generator parameter is cumulatively updated, displayed as long as is_generator_updated is True
+            final_improved_generator = current_generator if is_generator_updated else ""
+
+            # Check if this is "without generator" mode by checking if the first user message contains distinctive text
+            # INIT_PROMPT_TEMPLATE_WITHOUT_GENERATOR contains "Your task is to create a high-quality C++ test case generator"
+            is_wogen_mode = "Your task is to create a high-quality C++ test case generator" in messages[1]['content']
+
+            if is_wogen_mode:
+                # Use WOGEN template with current generator
+                assistant_response = INIT_RESPONSE_TEMPLATE_WOGEN.format(
+                    input_constraints_summary=json.dumps(input_constraints_summary),
+                    generator=json.dumps(current_generator),
+                    command_list=json.dumps(commands)
+                )
+            else:
+                # Use WGEN template with accumulated blocks
+                assistant_response = INIT_RESPONSE_TEMPLATE_WGEN.format(
+                    input_constraints_summary=json.dumps(input_constraints_summary),
+                    search_replace_generator_blocks=json.dumps(all_search_replace_blocks),
+                    command_list=json.dumps(commands)
+                )
+
             refine_prompt = REFINE_PROMPT_TEMPLATE.format(
                 improved_generator=final_improved_generator,
                 current_command_list=commands,

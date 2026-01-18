@@ -12,6 +12,7 @@ class InitCommandModel(BaseModel):
     input_constraints_summary: str
     command_list: List[str]
     search_replace_generator_blocks: List[str] = []
+    generator: Optional[str] = None
 
 
 class CommandModel(BaseModel):

@@ -29,7 +29,7 @@ class MyCustomReader(DatasetReader):
     - id: Unique identifier
     - name: Problem name
     - description: Problem description
-    - generator: C++ test case generator code
+    - generator: (Optional) C++ test case generator code
     - checker: (Optional) C++ checker code
     - canonical_solutions: List of canonical solutions (for generating test outputs)
     - correct_solutions: List of correct solutions
