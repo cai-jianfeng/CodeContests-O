@@ -18,8 +18,8 @@
 
 ## 📢 News
 
-<!-- - **[2025.xx]** 🎉 Paper accepted to ACL 2025! -->
-- **[2025.01]** 🚀 Code and dataset released!
+<!-- - **[2026.xx]** 🎉 Paper accepted to ACL 2026! -->
+- **[2026.01]** 🚀 Code and dataset released!
 
 ## 📖 Overview
 
