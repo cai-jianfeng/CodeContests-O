@@ -85,6 +85,21 @@ pip install -e .
 
 </details>
 
+### Prerequisites
+
+Before running the framework, you need to download `testlib.h` - a widely-used library for competitive programming test generation:
+```bash
+# Download testlib.h to your working directory
+wget https://raw.githubusercontent.com/MikeMirzayanov/testlib/master/testlib.h
+
+# Or using curl
+curl -O https://raw.githubusercontent.com/MikeMirzayanov/testlib/master/testlib.h
+```
+
+> 💡 **Note**: `testlib.h` is required for compiling and running test case generators. Make sure it's accessible via the `--testlib_path` argument (defaults to `./testlib.h` in current directory).
+
+For more information about testlib, visit the [official repository](https://github.com/MikeMirzayanov/testlib).
+
 ### Basic Usage
 
 #### Option 1: From HuggingFace 🤗
