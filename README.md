@@ -148,6 +148,30 @@ stats = processor.process_dataset(dataset, config.dataset.results_dir)
 print(f"Completed: {stats['completed']}/{stats['total']}")
 ```
 
+## 解决方案评估
+
+如果你只想评估数据集中的解决方案在现有测试用例上的表现（检测假阴性和假阳性），可以使用 `solutions_eval` 模块。这对于分析数据集质量非常有用。
+
+### 基本用法
+
+```bash
+python -m codecontests_o.solutions_eval \
+    --data_path ByteDance-Seed/Code-Contests-Plus \
+    --subset 1x \
+    --results_dir ./results_eval \
+    --start 0 --end 10 \
+    --sandbox_hosts localhost
+```
+
+### 参数说明
+
+*   `--data_path`: 数据集路径（本地目录或 HuggingFace 数据集名称）
+*   `--subset`: 数据集子集（例如 `1x`, `2x`，仅适用于 Code-Contests-Plus）
+*   `--results_dir`: 结果保存目录
+*   `--start`/`--end`: 处理样本范围
+*   `--sample_workers`: 样本级并行度
+*   `--validation_workers`: 单个样本内的验证并行度
+
 ## 自定义数据集接入
 
 框架设计为可扩展的，你可以通过实现 `DatasetReader` 接口来接入自己的数据集。

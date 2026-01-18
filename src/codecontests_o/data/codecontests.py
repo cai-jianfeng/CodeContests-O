@@ -65,6 +65,7 @@ class CodeContestsReader(DatasetReader):
         end: int = -1,
         require_both_solutions: bool = True,
         split: str = "train",
+        subset: Optional[str] = None,
         use_hf: Optional[bool] = None
     ):
         self.data_path = data_path
@@ -72,6 +73,7 @@ class CodeContestsReader(DatasetReader):
         self.end = end
         self.require_both_solutions = require_both_solutions
         self.split = split
+        self.subset = subset
 
         # Auto-detect data source type
         if use_hf is None:
@@ -118,16 +120,19 @@ class CodeContestsReader(DatasetReader):
                 "Install it with: pip install datasets"
             )
 
+        args = [self.data_path]
+        if self.subset:
+            args.append(self.subset)
         # Check if local cache directory
         if os.path.isdir(self.data_path):
             # Try loading from local
             try:
-                self._hf_dataset = load_from_disk(self.data_path)
+                self._hf_dataset = load_from_disk(*args, split=self.split)
                 print(f"Loaded dataset from local cache: {self.data_path}")
             except Exception as e:
                 # Try loading using load_dataset
                 try:
-                    self._hf_dataset = load_dataset(self.data_path, split=self.split)
+                    self._hf_dataset = load_dataset(*args, split=self.split)
                     print(f"Loaded dataset from HuggingFace: {self.data_path}, split: {self.split}")
                 except Exception as e2:
                     raise ValueError(
@@ -137,8 +142,9 @@ class CodeContestsReader(DatasetReader):
         else:
             # Load from HuggingFace Hub
             try:
-                self._hf_dataset = load_dataset(self.data_path, split=self.split)
-                print(f"Loaded dataset from HuggingFace: {self.data_path}, split: {self.split}")
+                self._hf_dataset = load_dataset(*args, split=self.split)
+                subset_info = f", subset: {self.subset}" if self.subset else ""
+                print(f"Loaded dataset from HuggingFace: {self.data_path}{subset_info}, split: {self.split}")
             except Exception as e:
                 raise ValueError(
                     f"Failed to load dataset '{self.data_path}' from HuggingFace: {e}"
@@ -246,6 +252,14 @@ class CodeContestsReader(DatasetReader):
         generator = None
         checker = raw_data.get('checker', None)
         
+        # Extract test cases
+        test_cases = []
+        if 'test_cases' in raw_data:
+            # Code-Contests-Plus format
+            for tc in raw_data['test_cases']:
+                if isinstance(tc, dict) and 'input' in tc and 'output' in tc:
+                    test_cases.append(TestCase(input=tc['input'], output=tc['output']))
+
         return Sample(
             id=data_id,
             name=raw_data.get('title', ''),
@@ -255,6 +269,7 @@ class CodeContestsReader(DatasetReader):
             canonical_solutions=canonical_solutions,
             correct_solutions=correct_solutions,
             incorrect_solutions=incorrect_solutions,
+            test_cases=test_cases,
             metadata={
                 'cf_tags': raw_data.get('cf_tags', []),
                 'difficulty': raw_data.get('difficulty', ''),

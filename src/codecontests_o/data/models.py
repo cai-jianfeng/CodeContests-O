@@ -95,6 +95,7 @@ class Sample:
     canonical_solutions: List[Solution] = field(default_factory=list)
     correct_solutions: List[Solution] = field(default_factory=list)
     incorrect_solutions: List[Solution] = field(default_factory=list)
+    test_cases: List[TestCase] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     @property
