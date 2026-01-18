@@ -3,45 +3,225 @@ Common utility functions
 """
 
 import re
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Dict, Literal
+from pydantic import BaseModel
 
 
-def check_output_equal(expected: str, actual: str, lower_cmp: bool = True) -> bool:
+Language = Literal['python', 'cpp', 'nodejs', 'go', 'go_test', 'java', 'php', 'csharp', 'bash', 'typescript', 'sql',
+                   'rust', 'cuda', 'lua', 'R', 'perl', 'D_ut', 'ruby', 'scala', 'julia', 'pytest', 'junit',
+                   'kotlin_script', 'jest', 'verilog', 'python_gpu', 'lean', 'swift', 'racket']
+NullableLang = Language | Literal['']
+
+
+language_to_aliases = {
+    'python': ['python', 'Python', 'py', 'Python3', 'python3', 'PY'],
+    'cpp': ['cpp', 'c++', 'C++', 'Cpp', 'CPP'],
+    'nodejs': ['javascript', 'Javascript', 'JavaScript', 'JS', 'js'],
+    'go': ['go', 'Go'],
+    'java': ['java', 'Java'],
+    'php': ['php', 'PHP'],
+    'csharp': ['csharp', 'c#', 'C#'],
+    'bash': ['bash', 'Bash', 'BASH', 'sh', 'shell'],
+    'typescript': ['typescript'],
+    'rust': ['rust', 'Rust', 'rs'],
+    'sql': ['sql', 'SQL', 'Sql'],
+    'D': ['D', 'd'],
+    'julia': ['julia', 'Julia', 'jl'],
+    'lua': ['lua', 'Lua'],
+    'perl': ['perl', 'Perl', 'PERL'],
+    'R': ['R', 'r'],
+    'ruby': ['ruby', 'Ruby'],
+    'scala': ['scala', 'Scala'],
+    'kotlin': ['kotlin', 'Kotlin'],
+    'c': ['c', 'C'],
+    'html': ['html', 'Html', 'HTML'],
+    'javascript': ['javascript', 'Javascript', 'JavaScript'],
+    'verilog': ['verilog', 'Verilog', 'VERILOG'],
+    'racket': ['racket'],
+    'swift': ['swift'],
+}
+
+TEMPLATE = """
+Here is a {language} solution to the problem: 
+```{language}
+{solution}
+```
+"""
+LANGUAGE = ["UNKNOWN_LANGUAGE", "PYTHON", "CPP", "PYTHON3", "JAVA"]
+
+fenced_code_block_pattern = re.compile(
+    r'```([^\n]*)\n'
+    r'(.*?)'
+    r'\n\s*```',
+    re.DOTALL | re.MULTILINE
+)
+
+aliases_to_language_tiled = {v: k for k, vs in language_to_aliases.items() for v in vs}
+
+incomplete_fenced_code_block_pattern = re.compile(
+    r'```([^\n]*)\n'
+    r'(.*)',
+    re.DOTALL | re.MULTILINE
+)
+
+
+class CodeBlock(BaseModel):
+    priority: int
+    language: str
+    code: str
+
+
+def extract_fenced_code(completion: str) -> List[CodeBlock]:
+    code_matches = re.findall(fenced_code_block_pattern, completion)
+    results = []
+    for m in code_matches:
+        lang = aliases_to_language_tiled.get(m[0].strip(), '')
+        results.append(CodeBlock(priority=30, language=lang, code=m[1]))
+    return results
+
+
+def extract_heuristic_code(completion: str, language: NullableLang = '') -> List[CodeBlock]:
+    def extract_py(text):
+        code = "\n".join([line for line in text.split("\n") if line.strip() != ""]) + "\n"
+
+        pattern_py = "(?:^(?:import|from|#)[^\n]+\n)*" \
+            "^(?:def|class) [^\n]+\n" \
+            r"(?:\s+[^\n]+\n)+"
+        matches = re.findall(pattern_py, code, re.M)
+        return matches
+
+    def extract_sql(text):
+        code = "\n".join([line for line in text.split("\n") if line.strip() != ""]) + "\n"
+
+        pattern_sql = r"^\s*(?:select|with\s[^\n]+as)[^;]*"
+        matches = re.findall(pattern_sql, code, re.M | re.IGNORECASE)
+        return matches
+
+    def extract_bash(text):
+        code = "\n".join([line for line in text.split("\n") if line.strip() != ""]) + "\n"
+        return code
+
+    if language == 'python':
+        return [CodeBlock(priority=10, language='python', code=m) for m in extract_py(completion)]
+    elif language == 'sql':
+        return [CodeBlock(priority=10, language='sql', code=m) for m in extract_sql(completion)]
+    elif language == 'bash':
+        return [CodeBlock(priority=10, language='bash', code=extract_bash(completion))]
+    else:
+        return []
+
+
+def extract_incomplete_fenced_code(completion: str) -> List[CodeBlock]:
+    code_matches = re.findall(incomplete_fenced_code_block_pattern, completion)
+    results = []
+    for m in code_matches:
+        lang = aliases_to_language_tiled.get(m[0].strip(), '')
+        results.append(CodeBlock(priority=20, language=lang, code=m[1]))
+    return results
+
+
+def extract_custom_code(completion: str, custom_logic: str) -> List[CodeBlock]:
+    blocks = []
+
+    def submit(cbs):
+        for cb in cbs:
+            assert isinstance(cb, CodeBlock), 'extract code type must be class CodeBlock'
+            blocks.append(cb)
+
+    context = {
+        'CodeBlock': CodeBlock,
+        'completion': completion,
+        'submit_code_blocks': submit,
+        'extract_fenced_code': extract_fenced_code,
+        'extract_heuristic_code': extract_heuristic_code,
+    }
+    exec(custom_logic, context)
+    return blocks
+
+
+def filter_language(blocks: List[CodeBlock], language: NullableLang) -> List[CodeBlock]:
+    return [b for b in blocks if b.language == language]
+
+
+def default_extract_helper(completion: str, language: NullableLang = '', custom_extract_logic: Optional[str] = None) -> str:
     """
-    Compare if outputs are equal
+    Default code extraction logic
+    
+    By default, find all the fenced code blocks and add heuristic blocks if first one fails
+    Use the first block with target language, and fallback to the first any language block
+    """
+    code_blocks = extract_fenced_code(completion)
+    code_blocks += extract_heuristic_code(completion, language)
+    code_blocks += extract_incomplete_fenced_code(completion)
+    if custom_extract_logic is not None:
+        code_blocks += extract_custom_code(completion, custom_extract_logic)
+    
+    if len(code_blocks) == 0:
+        return ''
+
+    max_priority = max([cb.priority for cb in code_blocks])
+    code_blocks = [cb for cb in code_blocks if cb.priority == max_priority]
+
+    target_blocks = filter_language(code_blocks, language)
+    if len(target_blocks) > 0:
+        return target_blocks[0].code
+    return code_blocks[0].code
+
+
+def is_float(s: str) -> bool:
+    """Check if string is float"""
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+def float_equal(a: float, b: float, rel_tol: float = 1e-5) -> bool:
+    """Compare two floats with relative tolerance"""
+    return abs(a - b) / max(abs(b), 1e-10) < rel_tol
+
+
+def check_output_equal(expected_output: str, result_output: str, lower_cmp: bool = True) -> bool:
+    """
+    Compare if outputs are equal, supporting float comparison
     
     Args:
-        expected: Expected output
-        actual: Actual output
+        expected_output: Expected output
+        result_output: Actual output
         lower_cmp: Whether to ignore case
         
     Returns:
         bool: Whether equal
     """
-    # Normalize whitespace
-    expected_normalized = expected.strip()
-    actual_normalized = actual.strip()
-    
-    if lower_cmp:
-        expected_normalized = expected_normalized.lower()
-        actual_normalized = actual_normalized.lower()
-    
-    # Direct comparison
-    if expected_normalized == actual_normalized:
+    if expected_output == result_output:
         return True
+
+    expected_lines = expected_output.strip().split('\n')
+    result_lines = result_output.strip().split('\n')
     
-    # Compare by line (ignore trailing whitespace)
-    expected_lines = [line.rstrip() for line in expected_normalized.split('\n')]
-    actual_lines = [line.rstrip() for line in actual_normalized.split('\n')]
-    
-    if expected_lines == actual_lines:
-        return True
-    
-    # Remove empty lines and compare
-    expected_lines = [line for line in expected_lines if line]
-    actual_lines = [line for line in actual_lines if line]
-    
-    return expected_lines == actual_lines
+    # Handle trailing empty lines difference
+    if len(result_lines) - len(expected_lines) == 1 and result_lines[-1] == '':
+        result_lines = result_lines[:-1]
+    if len(expected_lines) - len(result_lines) == 1 and expected_lines[-1] == '':
+        expected_lines = expected_lines[:-1]
+        
+    if len(result_lines) != len(expected_lines):
+        return False
+        
+    for rl, el in zip(result_lines, expected_lines):
+        if lower_cmp:
+            rl = rl.lower()
+            el = el.lower()
+            
+        if rl.strip() != el.strip():
+            # Try float comparison
+            if is_float(el) and is_float(rl):
+                if float_equal(float(rl), float(el)):
+                    continue
+            return False
+            
+    return True
 
 
 def extract_code(completion: str, language: str) -> str:
@@ -55,15 +235,8 @@ def extract_code(completion: str, language: str) -> str:
     Returns:
         str: Extracted code
     """
-    # Try extracting code block
-    code_block_pattern = r'```(?:' + language + r')?\s*(.*?)```'
-    matches = re.findall(code_block_pattern, completion, re.DOTALL | re.IGNORECASE)
-    
-    if matches:
-        return matches[0].strip()
-    
-    # If no code block, return original text
-    return completion.strip()
+    return default_extract_helper(completion, language)
+
 
 
 def apply_code_patches(
