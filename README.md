@@ -48,7 +48,7 @@ The rise of reasoning models necessitates large-scale verifiable data, for which
 | 🛠️ **Extensible** | Easily adaptable to other competitive programming datasets |
 | 🤗 **HuggingFace Ready** | Direct integration with HuggingFace Datasets |
 | ✨ **Generator Flexible** | Works with existing generators or creates new ones from scratch via LLM |
-
+| 💾 **Resumable** | Both generation and evaluation support checkpoint resume from interruption |
 
 ### 📊 Performance Comparison
 
