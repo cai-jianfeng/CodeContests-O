@@ -208,7 +208,7 @@ class MyDatasetReader(DatasetReader):
                 id=item['id'],
                 name=item['name'],
                 description=item['description'],
-                generator=item['generator_code'],  # C++ generator using testlib.h
+                generator=item.get('generator_code'),  # Optional. If None, will specific generated.
                 canonical_solutions=[
                     Solution(code=item['solution'], language=Language.PYTHON)
                 ],
@@ -218,6 +218,10 @@ class MyDatasetReader(DatasetReader):
                 incorrect_solutions=[
                     Solution(code=item['wrong_solution'], language=Language.PYTHON)
                 ],
+                test_cases=[
+                    # Required if using solutions_eval to evaluate existing test cases
+                    TestCase(input="1\n", output="2\n")
+                ]
             )
             samples.append(sample)
         return samples
@@ -262,12 +266,12 @@ processor.process_dataset(dataset, results_dir)
 | `id` | str | ✓ | 唯一标识符 |
 | `name` | str | ✓ | 问题名称 |
 | `description` | str | ✓ | 问题完整描述 |
-| `generator` | str | ✓ | C++ 测试生成器代码（使用 testlib.h） |
+| `generator` | str | | C++ 测试生成器代码（可选，若无则从头生成） |
 | `checker` | str | | C++ checker 代码（可选） |
 | `canonical_solutions` | List[Solution] | ✓ | 规范解（用于生成测试输出） |
 | `correct_solutions` | List[Solution] | ✓ | 正确解列表 |
 | `incorrect_solutions` | List[Solution] | ✓ | 错误解列表 |
-| `public_tests` | List[TestCase] | | 公开测试用例 |
+| `test_cases` | List[TestCase] | | 测试用例（solutions_eval 时必需） |
 | `metadata` | Dict | | 其他元数据 |
 
 ## 配置选项
