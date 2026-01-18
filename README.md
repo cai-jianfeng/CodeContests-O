@@ -294,6 +294,22 @@ codecontests_o/
 
 </details>
 
+## 📋 Roadmap
+
+- [x] Core feedback-driven iterative framework
+- [x] Support for existing generator refinement
+- [x] Generator creation from scratch via LLM
+- [x] HuggingFace Datasets integration
+- [x] Custom dataset reader interface
+- [x] Solution evaluation module (TPR/TNR analysis)
+- [x] Multi-level parallel processing
+- [ ] 🚧 Checker code co-generation and iterative refinement
+- [ ] Web-based visualization dashboard
+- [ ] Support for more programming languages (currently C++/Python/Java)
+- [ ] Distributed sandbox execution across multiple nodes
+
+> 💡 **Contributing**: PRs are welcome! Feel free to open an issue to discuss new features or improvements.
+
 ## 📝 Citation
 
 If you find this work useful, please cite our paper:
