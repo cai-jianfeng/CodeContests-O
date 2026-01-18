@@ -35,7 +35,7 @@ codecontests_o/
 
 ```bash
 # 克隆仓库
-git clone <repository_url>
+git clone https://github.com/cai-jianfeng/CodeContests-O.git
 cd codecontests_o
 
 # 安装 (开发模式)
