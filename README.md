@@ -2,50 +2,52 @@
 
 Feedback-Driven Iterative Test Case Generation Framework
 
-## 概述
+## Overview
 
-CodeContests-O 是一个用于生成高质量竞赛编程测试用例的框架。它使用反馈驱动的迭代优化方法，通过大语言模型和代码执行沙箱协同工作，生成能够有效区分正确解和错误解的测试用例。
+CodeContests-O is a framework for generating high-quality competitive programming test cases. It uses a feedback-driven iterative optimization method, working synergistically with Large Language Models and a code execution sandbox to generate test cases that effectively distinguish between correct and incorrect solutions.
 
-## 目录结构
+## Directory Structure
 
 ```
 codecontests_o/
-├── pyproject.toml           # 构建配置
-├── setup.py                 # 安装脚本
+├── pyproject.toml           # Build configuration
+├── setup.py                 # Installation script
 ├── src/
-│   └── codecontests_o/      # 源代码包
-│       ├── __init__.py      # 主包入口
-│       ├── main.py          # 命令行入口
-│       ├── config/          # 配置管理
-│       ├── data/            # 数据处理
-│       ├── clients/         # API 客户端
-│       ├── core/            # 核心逻辑
-│       ├── parallel/        # 并行处理
-│       ├── prompts/         # 提示模板
-│       ├── utils/           # 工具函数
-│       └── examples/        # 示例
-└── README.md                # 文档
+│   └── codecontests_o/      # Source code package
+│       ├── __init__.py      # Package entry point
+│       ├── main.py          # Main generation entry point
+│       ├── solutions_eval.py # Solution evaluation entry point
+│       ├── analyze_results.py # Result analysis entry point
+│       ├── config/          # Configuration management
+│       ├── data/            # Data processing
+│       ├── clients/         # API clients
+│       ├── core/            # Core logic
+│       ├── parallel/        # Parallel processing
+│       ├── prompts/         # Prompt templates
+│       ├── utils/           # Utility functions
+│       └── examples/        # Examples
+└── README.md                # Documentation
 ```
 
-## 安装
+## Installation
 
-确保你的环境中使用的是 Python 3.8 或更高版本。
+Ensure your environment is using Python 3.8 or higher.
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone <repository_url>
 cd codecontests_o
 
-# 安装 (开发模式)
+# Install (development mode)
 pip install -e .
 
-# 或者标准安装
+# Or standard install
 pip install .
 ```
 
-## 快速开始
+## Quick Start
 
-### 使用本地 JSON 文件
+### Using Local JSON Files
 
 ```bash
 python -m codecontests_o.main \
@@ -56,12 +58,12 @@ python -m codecontests_o.main \
     --testlib_path ./testlib.h
 ```
 
-### 使用 HuggingFace 数据集
+### Using HuggingFace Datasets
 
-CodeContests-O 支持直接从 HuggingFace 加载数据集，如 `ByteDance-Seed/Code-Contests-Plus`：
+CodeContests-O supports loading datasets directly from HuggingFace, such as `ByteDance-Seed/Code-Contests-Plus`:
 
 ```bash
-# 从 HuggingFace Hub 加载
+# Load from HuggingFace Hub
 python -m codecontests_o.main \
     --data_path ByteDance-Seed/Code-Contests-Plus \
     --results_dir ./results \
@@ -70,12 +72,12 @@ python -m codecontests_o.main \
     --testlib_path ./testlib.h
 ```
 
-Python API 方式：
+Python API Usage:
 
 ```python
 from codecontests_o import CodeContestsReader, ParallelProcessor
 
-# 自动检测数据源类型
+# Automatically detect data source type
 dataset = CodeContestsReader(
     data_path="ByteDance-Seed/Code-Contests-Plus",
     split="test",  # train, test, or validation
@@ -83,7 +85,7 @@ dataset = CodeContestsReader(
     end=10
 )
 
-# 或者显式指定使用 HuggingFace
+# Or explicitly specify to use HuggingFace
 dataset = CodeContestsReader(
     data_path="ByteDance-Seed/Code-Contests-Plus",
     use_hf=True,
@@ -91,20 +93,20 @@ dataset = CodeContestsReader(
 )
 ```
 
-### 使用预设配置
+### Using Preset Configurations
 
 ```bash
-# 开发环境（少量并行，调试模式）
+# Development environment (low parallelism, debug mode)
 python -m codecontests_o.main --preset development --data_path ./data
 
-# 生产环境（高并行度）
+# Production environment (high parallelism)
 python -m codecontests_o.main --preset production --data_path ./data
 
-# 快速测试（仅生成，不验证）
+# Quick test (generate only, no validation)
 python -m codecontests_o.main --preset quick --data_path ./data
 ```
 
-### Python API 使用
+### Python API Usage
 
 ```python
 from codecontests_o import (
@@ -115,25 +117,25 @@ from codecontests_o import (
 )
 import base64
 
-# 1. 创建配置
+# 1. Create configuration
 config = Config.from_dict(get_preset_config("development"))
 config.openai.api_key = "your-api-key"
 config.dataset.data_path = "/path/to/data"
 config.dataset.results_dir = "./results"
 
-# 2. 加载 testlib.h
+# 2. Load testlib.h
 with open("testlib.h", "rb") as f:
     testlib_files = {"testlib.h": base64.b64encode(f.read()).decode()}
 
-# 3. 创建数据集读取器
-# 方式 1: 从本地 JSON 文件
+# 3. Create dataset reader
+# Method 1: From local JSON files
 dataset = CodeContestsReader(
     data_path=config.dataset.data_path,
     start=0,
-    end=10  # 只处理前10个样本
+    end=10  # Process only the first 10 samples
 )
 
-# 方式 2: 从 HuggingFace 数据集
+# Method 2: From HuggingFace dataset
 dataset = CodeContestsReader(
     data_path="ByteDance-Seed/Code-Contests-Plus",
     split="test",
@@ -141,18 +143,18 @@ dataset = CodeContestsReader(
     end=10
 )
 
-# 4. 创建处理器并运行
+# 4. Create processor and run
 processor = ParallelProcessor(config=config, testlib_files=testlib_files)
 stats = processor.process_dataset(dataset, config.dataset.results_dir)
 
 print(f"Completed: {stats['completed']}/{stats['total']}")
 ```
 
-## 解决方案评估
+## Solution Evaluation
 
-如果你只想评估数据集中的解决方案在现有测试用例上的表现（检测假阴性和假阳性），可以使用 `solutions_eval` 模块。这对于分析数据集质量非常有用。
+If you only want to evaluate the performance of solutions in the dataset on existing test cases (detecting false negatives and false positives), you can use the `solutions_eval` module. This is useful for analyzing dataset quality.
 
-### 基本用法
+### Basic Usage
 
 ```bash
 python -m codecontests_o.solutions_eval \
@@ -163,33 +165,33 @@ python -m codecontests_o.solutions_eval \
     --sandbox_hosts localhost
 ```
 
-### 参数说明
+### Parameters
 
-*   `--data_path`: 数据集路径（本地目录或 HuggingFace 数据集名称）
-*   `--subset`: 数据集子集（例如 `1x`, `2x`，仅适用于 Code-Contests-Plus）
-*   `--results_dir`: 结果保存目录
-*   `--start`/`--end`: 处理样本范围
-*   `--sample_workers`: 样本级并行度
-*   `--validation_workers`: 单个样本内的验证并行度
+*   `--data_path`: Dataset path (local directory or HuggingFace dataset name)
+*   `--subset`: Dataset subset (e.g., `1x`, `2x`, only for Code-Contests-Plus)
+*   `--results_dir`: Directory to save results
+*   `--start`/`--end`: Range of samples to process
+*   `--sample_workers`: Sample-level parallelism
+*   `--validation_workers`: Validation parallelism within a single sample
 
-### 结果分析
+### Result Analysis
 
-在运行评估之后，使用 `analyze_results` 计算总体指标（TPR/TNR）：
+After running the evaluation, use `analyze_results` to calculate overall metrics (TPR/TNR):
 
 ```bash
 python -m codecontests_o.analyze_results --results_dir ./results_eval
 ```
 
-这将输出详细的统计信息，包括：
-*   **TPR (True Positive Rate)**: 正确解被判定为正确的比例（越高越好）。
-*   **TNR (True Negative Rate)**: 错误解被判定为错误的比例（越高越好）。
-*   **Intersection**: 同时拥有有效 TPR 和 TNR 的样本的平均值。
+This will output detailed statistics, including:
+*   **TPR (True Positive Rate)**: The proportion of correct solutions identified as correct (higher is better).
+*   **TNR (True Negative Rate)**: The proportion of incorrect solutions identified as incorrect (higher is better).
+*   **Intersection**: Average value for samples that have both valid TPR and TNR.
 
-## 自定义数据集接入
+## Custom Dataset Integration
 
-框架设计为可扩展的，你可以通过实现 `DatasetReader` 接口来接入自己的数据集。
+The framework is designed to be extensible, allowing you to integrate your own datasets by implementing the `DatasetReader` interface.
 
-### 步骤 1: 创建自定义读取器
+### Step 1: Create Custom Reader
 
 ```python
 # my_reader.py
@@ -202,13 +204,13 @@ class MyDatasetReader(DatasetReader):
     
     def _load_data(self):
         samples = []
-        # 加载你的数据...
+        # Load your data...
         for item in your_data:
             sample = Sample(
                 id=item['id'],
                 name=item['name'],
                 description=item['description'],
-                generator=item.get('generator_code'),  # Optional. If None, will specific generated.
+                generator=item.get('generator_code'),  # Optional. If None, will specify generated.
                 canonical_solutions=[
                     Solution(code=item['solution'], language=Language.PYTHON)
                 ],
@@ -238,7 +240,7 @@ class MyDatasetReader(DatasetReader):
         return "MyDataset"
 ```
 
-### 步骤 2: 使用自定义读取器
+### Step 2: Use Custom Reader
 
 ```bash
 python -m codecontests_o.main \
@@ -247,7 +249,7 @@ python -m codecontests_o.main \
     --results_dir ./results
 ```
 
-或者通过 Python API:
+Or via Python API:
 
 ```python
 from my_reader import MyDatasetReader
@@ -257,58 +259,58 @@ processor = ParallelProcessor(config=config, testlib_files=testlib_files)
 processor.process_dataset(dataset, results_dir)
 ```
 
-## Sample 数据模型
+## Sample Data Model
 
-`Sample` 是框架的核心数据结构，包含以下字段：
+`Sample` is the core data structure of the framework, containing the following fields:
 
-| 字段 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `id` | str | ✓ | 唯一标识符 |
-| `name` | str | ✓ | 问题名称 |
-| `description` | str | ✓ | 问题完整描述 |
-| `generator` | str | | C++ 测试生成器代码（可选，若无则从头生成） |
-| `checker` | str | | C++ checker 代码（可选） |
-| `canonical_solutions` | List[Solution] | ✓ | 规范解（用于生成测试输出） |
-| `correct_solutions` | List[Solution] | ✓ | 正确解列表 |
-| `incorrect_solutions` | List[Solution] | ✓ | 错误解列表 |
-| `test_cases` | List[TestCase] | | 测试用例（solutions_eval 时必需） |
-| `metadata` | Dict | | 其他元数据 |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | str | ✓ | Unique identifier |
+| `name` | str | ✓ | Problem name |
+| `description` | str | ✓ | Full problem description |
+| `generator` | str | | C++ tests generator code (optional, generated from scratch if absent) |
+| `checker` | str | | C++ checker code (optional) |
+| `canonical_solutions` | List[Solution] | ✓ | Canonical solutions (used for generating test outputs) |
+| `correct_solutions` | List[Solution] | ✓ | List of correct solutions |
+| `incorrect_solutions` | List[Solution] | ✓ | List of incorrect solutions |
+| `test_cases` | List[TestCase] | | Test cases (required for solutions_eval) |
+| `metadata` | Dict | | Other metadata |
 
-## 配置选项
+## Configuration Options
 
-### OpenAI 配置
+### OpenAI Configuration
 
-| 选项 | 默认值 | 说明 |
-|------|--------|------|
-| `api_base` | `https://api.openai.com/v1` | API 基础 URL |
-| `api_key` | - | API 密钥 |
-| `model` | `gpt-4o` | 模型名称 |
-| `max_tokens` | `8000` | 最大 token 数 |
-| `no_reasoning` | `True` | 是否禁用推理模式 |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `api_base` | `https://api.openai.com/v1` | API base URL |
+| `api_key` | - | API key |
+| `model` | `gpt-4o` | Model name |
+| `max_tokens` | `8000` | Maximum tokens |
+| `no_reasoning` | `True` | Whether to disable reasoning mode |
 
-### Sandbox 配置
+### Sandbox Configuration
 
-| 选项 | 默认值 | 说明 |
-|------|--------|------|
-| `hosts` | `["localhost"]` | 沙箱主机列表 |
-| `base_port` | `8080` | 基础端口 |
-| `port_range` | `4` | 每个主机的端口数 |
-| `compile_timeout` | `20` | 编译超时（秒） |
-| `run_timeout` | `20` | 运行超时（秒） |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `hosts` | `["localhost"]` | Sandbox hosts list |
+| `base_port` | `8080` | Base port |
+| `port_range` | `4` | Number of ports per host |
+| `compile_timeout` | `20` | Compilation timeout (seconds) |
+| `run_timeout` | `20` | Execution timeout (seconds) |
 
-### 处理配置
+### Processing Configuration
 
-| 选项 | 默认值 | 说明 |
-|------|--------|------|
-| `max_iterations` | `3` | 每个样本的最大迭代次数 |
-| `sample_level_workers` | `4` | 样本级并行度 |
-| `output_generation_workers` | `4` | 输出生成并行度 |
-| `solution_validation_workers` | `4` | 验证并行度 |
-| `only_generate` | `False` | 仅生成不验证 |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `max_iterations` | `3` | Maximum iterations per sample |
+| `sample_level_workers` | `4` | Sample-level parallelism |
+| `output_generation_workers` | `4` | Output generation parallelism |
+| `solution_validation_workers` | `4` | Validation parallelism |
+| `only_generate` | `False` | Generate only, skip validation |
 
-## 输出格式
+## Output Format
 
-每个样本的结果保存为 JSON 文件：
+Results for each sample are saved as JSON files:
 
 ```json
 {
@@ -330,14 +332,14 @@ processor.process_dataset(dataset, results_dir)
 }
 ```
 
-## 工作流程
+## Workflow
 
-1. **初始生成**: LLM 分析问题和生成器，生成初始命令列表
-2. **执行命令**: 在沙箱中执行命令，生成测试输入
-3. **生成输出**: 使用规范解运行测试输入，生成期望输出
-4. **验证**: 在正确解和错误解上运行测试用例
-5. **反馈优化**: 根据验证结果，LLM 优化命令和生成器
-6. **迭代**: 重复步骤 2-5 直到达到最大迭代次数或所有解都被正确分类
+1.  **Initial Generation**: LLM analyzes the problem and generator to generate an initial list of commands.
+2.  **Command Execution**: Execute commands in the sandbox to generate test inputs.
+3.  **Output Generation**: Run test inputs using canonical solutions to generate expected outputs.
+4.  **Validation**: Run test cases on correct and incorrect solutions.
+5.  **Feedback Optimization**: Based on validation results, LLM optimizes commands and the generator.
+6.  **Iteration**: Repeat steps 2-5 until the maximum number of iterations is reached or all solutions are correctly classified.
 
 ## License
 
