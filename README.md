@@ -18,7 +18,7 @@
 
 ## 📢 News
 
-<!-- - **[2026.xx]** 🎉 Paper accepted to ACL 2026! -->
+<!-- - **[2026.xx]** 🎉 Paper accepted to xxx! -->
 - **[2026.01]** 🚀 Code and dataset released!
 
 ## 📖 Overview
@@ -144,7 +144,7 @@ import base64
 
 # 1. Setup configuration
 config = Config.from_dict(get_preset_config("development"))
-config.openai.api_key = "your-api-key"
+config.openai.api_key = "YOUR_API_KEY"  # Replace with your actual OpenAI API key
 config.dataset.data_path = "ByteDance-Seed/Code-Contests-Plus"
 config.dataset.results_dir = "./results"
 
