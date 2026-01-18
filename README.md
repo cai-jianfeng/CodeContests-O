@@ -304,7 +304,7 @@ codecontests_o/
 - [x] Solution evaluation module (TPR/TNR analysis)
 - [x] Multi-level parallel processing
 - [ ] 🚧 Checker code co-generation and iterative refinement
-- [ ] Web-based visualization dashboard
+- [ ] Release filtered correct/incorrect solutions dataset
 - [ ] Support for more programming languages (currently C++/Python/Java)
 - [ ] Distributed sandbox execution across multiple nodes
 
