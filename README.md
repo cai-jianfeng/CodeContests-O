@@ -172,6 +172,19 @@ python -m codecontests_o.solutions_eval \
 *   `--sample_workers`: 样本级并行度
 *   `--validation_workers`: 单个样本内的验证并行度
 
+### 结果分析
+
+在运行评估之后，使用 `analyze_results` 计算总体指标（TPR/TNR）：
+
+```bash
+python -m codecontests_o.analyze_results --results_dir ./results_eval
+```
+
+这将输出详细的统计信息，包括：
+*   **TPR (True Positive Rate)**: 正确解被判定为正确的比例（越高越好）。
+*   **TNR (True Negative Rate)**: 错误解被判定为错误的比例（越高越好）。
+*   **Intersection**: 同时拥有有效 TPR 和 TNR 的样本的平均值。
+
 ## 自定义数据集接入
 
 框架设计为可扩展的，你可以通过实现 `DatasetReader` 接口来接入自己的数据集。
