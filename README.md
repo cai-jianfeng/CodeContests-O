@@ -29,7 +29,8 @@ The rise of reasoning models necessitates large-scale verifiable data, for which
 
 1. 🔄 Leverages execution feedback from both correct and incorrect solutions
 2. 🎯 Iteratively refines test cases toward high fidelity and discriminability
-3. 📈 Achieves significant improvements in test case quality
+3. ✨ Supports both refining existing generators and creating new ones from scratch
+4. 📈 Achieves significant improvements in test case quality
 
 <div align="center">
 <img src="assets/framework.png" width="85%">
@@ -46,6 +47,8 @@ The rise of reasoning models necessitates large-scale verifiable data, for which
 | 🚀 **Training Effective** | +9.52% improvement on LiveCodeBench after fine-tuning |
 | 🛠️ **Extensible** | Easily adaptable to other competitive programming datasets |
 | 🤗 **HuggingFace Ready** | Direct integration with HuggingFace Datasets |
+| ✨ **Generator Flexible** | Works with existing generators or creates new ones from scratch via LLM |
+
 
 ### 📊 Performance Comparison
 
@@ -202,7 +205,10 @@ class MyDatasetReader(DatasetReader):
                 id=item['id'],
                 name=item['name'],
                 description=item['description'],
-                generator=item.get('generator_code'),  # Optional: auto-generated if None
+                # Optional: C++ generator using testlib.h
+                # - If provided: framework iteratively refines it based on feedback
+                # - If None: framework generates a new generator from scratch using LLM
+                generator=item.get('generator_code'),
                 canonical_solutions=[Solution(code=item['solution'], language=Language.PYTHON)],
                 correct_solutions=[Solution(code=item['solution'], language=Language.PYTHON)],
                 incorrect_solutions=[Solution(code=item['wrong_solution'], language=Language.PYTHON)],
