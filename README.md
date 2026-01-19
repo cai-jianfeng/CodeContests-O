@@ -216,6 +216,10 @@ class MyDatasetReader(DatasetReader):
                 canonical_solutions=[Solution(code=item['solution'], language=Language.PYTHON)],
                 correct_solutions=[Solution(code=item['solution'], language=Language.PYTHON)],
                 incorrect_solutions=[Solution(code=item['wrong_solution'], language=Language.PYTHON)],
+                test_cases=[
+                    # Required if using solutions_eval to evaluate existing test cases
+                    TestCase(input="1\n", output="2\n")
+                ]
             )
             samples.append(sample)
         return samples
