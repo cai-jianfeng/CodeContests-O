@@ -164,18 +164,22 @@ print(f"✅ Completed: {stats['completed']}/{stats['total']}")
 
 ## 📈 Solution Evaluation
 
-Evaluate solution performance on existing test cases to analyze dataset quality:
+Evaluate solution performance on datasets to analyze their quality (e.g. CodeContests-O, CodeContests+, CodeContests, etc.):
 ```bash
-# Run evaluation
+# Example: Evaluate on CodeContests-O (default)
+
 python -m codecontests_o.solutions_eval \
-    --data_path ByteDance-Seed/Code-Contests-Plus \
-    --subset 1x \
+    --data_path caijanfeng/CodeContests-O \
+    # Note: We need deepmind/code_contests to fetch solutions as CodeContests-O does not store them redundantly
+    --codecontests_path deepmind/code_contests \
     --results_dir ./results_eval \
     --start 0 --end 100
 
 # Analyze results (TPR/TNR)
 python -m codecontests_o.analyze_results --results_dir ./results_eval
 ```
+
+> **Note**: The `solutions_eval` script uses `caijanfeng/CodeContests-O` as the default test dataset. You can specify other parameters like `--data_path` and `--split` to evaluate other datasets.
 
 <details>
 <summary>📊 Metrics Explanation</summary>
@@ -228,6 +232,7 @@ class MyDatasetReader(DatasetReader):
 ```
 ```bash
 python -m codecontests_o.main --custom_reader my_reader.py --data_path /path/to/data
+python -m codecontests_o.solutions_eval --custom_reader my_reader.py --data_path /path/to/data --results_dir ./results_eval
 ```
 
 ## ⚙️ Configuration

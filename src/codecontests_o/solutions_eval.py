@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 from .config import Config, get_preset_config
-from .data import CodeContestsReader
+from .data import CodeContestOReader
 from .data.models import Sample
 from .clients.sandbox_client import SandboxClient
 from .core.validator import SolutionValidator
@@ -104,8 +104,8 @@ def main():
     )
     
     # Data configuration
-    parser.add_argument("--data_path", type=str, required=True,
-                       help="Path to dataset")
+    parser.add_argument("--data_path", type=str, default="caijanfeng/CodeContests-O",
+                       help="Path to dataset (default: caijanfeng/CodeContests-O)")
     parser.add_argument("--results_dir", type=str, default="./results_eval",
                        help="Directory to save evaluation results")
     parser.add_argument("--preset", type=str, default="production",
@@ -114,7 +114,11 @@ def main():
     # Dataset filtering
     parser.add_argument("--start", type=int, default=0, help="Start index")
     parser.add_argument("--end", type=int, default=-1, help="End index")
-    parser.add_argument("--subset", type=str, help="Dataset subset (e.g. 1x for CodeContestsPlus)")
+    parser.add_argument("--subset", type=str, help="Dataset subset")
+    parser.add_argument("--codecontests_path", type=str, default="deepmind/code_contests",
+                        help="CodeContests dataset path/name (default: deepmind/code_contests)")
+    parser.add_argument("--split", type=str, default="test",
+                        help="Dataset split (default: test)")
     
     # Worker configuration
     parser.add_argument("--sample_workers", type=int, default=4,
@@ -164,14 +168,24 @@ def main():
     
     # Load dataset
     print(f"Loading dataset from {config.dataset.data_path}...")
-    dataset = CodeContestsReader(
-        data_path=config.dataset.data_path,
-        start=config.processing.start,
-        end=config.processing.end,
-        subset=args.subset
+    dataset = CodeContestOReader(
+        dataset_path=config.dataset.data_path,
+        codecontests_path=args.codecontests_path,
+        split=args.split
     )
     
-    print(f"Found {len(dataset)} samples to process")
+    # Apply slicing manually as CodeContestOReader returns list or supports iter
+    # But it doesn't support start/end in constructor like CodeContestsReader did
+    # We need to implement slicing if CodeContestOReader returns a list
+    if hasattr(dataset, '_load_samples'): # It does
+        all_samples = dataset._load_samples()
+        end = args.end if args.end != -1 else len(all_samples)
+        dataset_slice = all_samples[args.start:end]
+        print(f"Found {len(dataset_slice)} samples to process (Total: {len(all_samples)})")
+    else:
+        # Fallback if implementation details change
+        dataset_slice = list(dataset)[args.start:args.end if args.end != -1 else None]
+        print(f"Found {len(dataset_slice)} samples to process")
     
     # Initialize evaluator
     evaluator = Evaluator(config, testlib_files)
@@ -190,10 +204,10 @@ def main():
         # Submit all tasks
         future_to_sample = {
             executor.submit(evaluator.evaluate_sample, sample, config.dataset.results_dir): sample 
-            for sample in dataset
+            for sample in dataset_slice
         }
         
-        for future in tqdm(as_completed(future_to_sample), total=len(dataset), desc="Evaluating"):
+        for future in tqdm(as_completed(future_to_sample), total=len(dataset_slice), desc="Evaluating"):
             try:
                 stats = future.result()
                 total_stats['completed'] += stats['completed']

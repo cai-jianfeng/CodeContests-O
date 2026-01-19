@@ -545,3 +545,148 @@ class CodeContestsHFReader(DatasetReader):
     @property
     def name(self) -> str:
         return f"CodeContests-HF-{self.split}"
+
+
+class CodeContestOReader(DatasetReader):
+    """
+    CodeContest-O Dataset Reader
+
+    Reads CodeContest-O dataset (list of results) and merges with original CodeContests solutions.
+    """
+
+    def __init__(
+        self,
+        dataset_path: str,
+        codecontests_path: str = "deepmind/code_contests",
+        split: str = "test",
+        require_both_solutions: bool = True
+    ):
+        self.dataset_path = dataset_path
+        self.codecontests_path = codecontests_path
+        self.split = split
+        self.require_both_solutions = require_both_solutions
+        self._samples_cache = None
+
+    def _load_samples(self) -> List[Sample]:
+        if self._samples_cache is not None:
+            return self._samples_cache
+
+        from datasets import load_dataset
+        
+        # 1. Load CodeContests dataset
+        print(f"Loading CodeContests dataset from {self.codecontests_path}...")
+        try:
+             # Try fast lookup if possible? 
+             # For HF datasets, we might need to iterate to build an index unless it supports fast filtering
+             cc_dataset = load_dataset(self.codecontests_path, split=self.split)
+        except Exception as e:
+            raise ValueError(f"Failed to load CodeContests dataset: {e}")
+        
+        # Build index for fast lookup (name -> item)
+        print("Building CodeContests index...")
+        cc_map = {item['name']: item for item in cc_dataset}
+        
+        # 2. Load Our Dataset
+        print(f"Loading CodeContest-O dataset from {self.dataset_path}...")
+        our_data = []
+        
+        # HuggingFace Dataset (Local or Remote)
+        try:
+            # Try loading with the configured split
+            our_data = load_dataset(self.dataset_path, split=self.split)
+        except Exception:
+            # Fallback to 'train' if specific split not found (common for custom datasets uploaded as single split)
+            print(f"Could not load split '{self.split}' for {self.dataset_path}, trying 'train'...")
+            try:
+                our_data = load_dataset(self.dataset_path, split='train')
+            except Exception as e:
+                raise ValueError(f"Failed to load dataset {self.dataset_path}: {e}")
+
+        samples = []
+        for item in tqdm(our_data, desc="Processing CodeContest-O"):
+            name = item.get('name')
+            if not name:
+                continue
+                
+            cc_sample = cc_map.get(name)
+            if not cc_sample:
+                print(f"Warning: Sample '{name}' not found in CodeContests dataset")
+                continue
+            
+            # Extract solutions
+            correct_solutions = []
+            if 'solutions' in cc_sample:
+                sol_data = cc_sample['solutions']
+                # HF format: {'language': [1, 2], 'solution': ['code', ...]}
+                if isinstance(sol_data, dict) and 'language' in sol_data and 'solution' in sol_data:
+                    for idx, (lang_idx, code) in enumerate(zip(sol_data['language'], sol_data['solution'])):
+                        try:
+                            language = Language.from_index(lang_idx)
+                            if language == Language.UNKNOWN:
+                                continue
+                            correct_solutions.append(Solution(code=code, language=language, index=idx))
+                        except Exception:
+                            continue
+            
+            incorrect_solutions = []
+            if 'incorrect_solutions' in cc_sample:
+                sol_data = cc_sample['incorrect_solutions']
+                if isinstance(sol_data, dict) and 'language' in sol_data and 'solution' in sol_data:
+                    for idx, (lang_idx, code) in enumerate(zip(sol_data['language'], sol_data['solution'])):
+                        try:
+                            language = Language.from_index(lang_idx)
+                            if language == Language.UNKNOWN:
+                                continue
+                            incorrect_solutions.append(Solution(code=code, language=language, index=idx))
+                        except Exception:
+                            continue
+
+            if self.require_both_solutions:
+                if not correct_solutions or not incorrect_solutions:
+                    continue
+            
+            # Extract corner cases
+            test_cases = []
+            if 'corner_cases' in item:
+                for tc in item['corner_cases']:
+                    test_cases.append(TestCase(input=tc.get('input', ''), output=tc.get('output', '')))
+
+            # Create Sample
+            sample = Sample(
+                id=f"CodeContestO_{len(samples)}", 
+                name=name,
+                description=item.get('description', ''),
+                generator=item.get('generator', ''),
+                checker=item.get('checker', None),
+                canonical_solutions=correct_solutions,
+                correct_solutions=correct_solutions,
+                incorrect_solutions=incorrect_solutions,
+                test_cases=test_cases,
+                metadata={
+                    "commands": item.get('commands', []),
+                    "input_constraints_summary": item.get('input_constraints_summary', ''),
+                    # "results": item.get('results', []),
+                    # Include original metadata
+                    "difficulty": cc_sample.get('difficulty'),
+                    "cf_tags": cc_sample.get('cf_tags', []),
+                    "time_limit": cc_sample.get('time_limit'),
+                    "memory_limit_bytes": cc_sample.get('memory_limit_bytes'),
+                    "source": cc_sample.get('source'),
+                }
+            )
+            samples.append(sample)
+            
+        self._samples_cache = samples
+        return samples
+
+    def __iter__(self) -> Iterator[Sample]:
+        for sample in self._load_samples():
+            yield sample
+
+    def __len__(self) -> int:
+        return len(self._load_samples())
+    
+    @property
+    def name(self) -> str:
+        return "CodeContest-O"
+

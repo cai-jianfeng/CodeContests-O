@@ -18,6 +18,7 @@ from .base import DatasetReader
 from .codecontests import (
     CodeContestsReader,
     CodeContestsHFReader,
+    CodeContestOReader,
 )
 
 __all__ = [
