@@ -101,7 +101,7 @@ curl -O https://raw.githubusercontent.com/MikeMirzayanov/testlib/master/testlib.
 
 > 💡 **Note**: `testlib.h` is required for compiling and running test case generators. Make sure it's accessible via the `--testlib_path` argument (defaults to `./testlib.h` in current directory).
 
-> ⚠️ **Important**: If you want to run the generators/checkers from our **CodeContests-O dataset**, please use the **simplified `testlib.h`** provided in our [HuggingFace repository](https://huggingface.co/datasets/caijanfeng/CodeContests-O) instead of the official version. The simplified version is optimized for compatibility with our generated code.
+> ⚠️ **Important**: If you want to run the generators/checkers from our **CodeContests-O dataset**, please use the **simplified `testlib.h`** provided in our [HuggingFace repository](https://huggingface.co/datasets/caijanfeng/CodeContests-O/blob/main/assets/testlib.h) instead of the official version. The simplified version is optimized for compatibility with our generated code.
 
 For more information about testlib, visit the [official repository](https://github.com/MikeMirzayanov/testlib).
 
