@@ -10,7 +10,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-[📄 Paper](https://arxiv.org/abs/2501.xxxxx) | [🤗 Dataset](https://huggingface.co/datasets/caijanfeng/CodeContests-O) | [💻 Code](https://github.com/cai-jianfeng/CodeContests-O)
+[📄 Paper](https://arxiv.org/abs/2501.xxxxx) | [🤗 Dataset](https://huggingface.co/datasets/caijanfeng/CodeContests-O) | [💻 Code](https://github.com/cai-jianfeng/CodeContests-O) | [🧪 Sandbox](https://github.com/cai-jianfeng/SandboxFusion)
 
 </div>
 
@@ -101,7 +101,21 @@ curl -O https://raw.githubusercontent.com/MikeMirzayanov/testlib/master/testlib.
 
 > 💡 **Note**: `testlib.h` is required for compiling and running test case generators. Make sure it's accessible via the `--testlib_path` argument (defaults to `./testlib.h` in current directory).
 
+> ⚠️ **Important**: If you want to run the generators/checkers from our **CodeContests-O dataset**, please use the **simplified `testlib.h`** provided in our [HuggingFace repository](https://huggingface.co/datasets/caijanfeng/CodeContests-O) instead of the official version. The simplified version is optimized for compatibility with our generated code.
+
 For more information about testlib, visit the [official repository](https://github.com/MikeMirzayanov/testlib).
+
+### Enhanced SandboxFusion
+
+To support our feedback-driven framework, we have extended [ByteDance's SandboxFusion](https://github.com/bytedance/SandboxFusion) with additional features for competitive programming test case generation. Our enhanced version is available at: **[cai-jianfeng/SandboxFusion](https://github.com/cai-jianfeng/SandboxFusion)**
+```bash
+# Clone and setup the enhanced sandbox
+git clone https://github.com/cai-jianfeng/SandboxFusion.git
+cd SandboxFusion
+# Follow the setup instructions in the repository
+```
+
+> 📘 Please refer to the [SandboxFusion README](https://github.com/cai-jianfeng/SandboxFusion#readme) for detailed setup and configuration instructions.
 
 ### Basic Usage
 
