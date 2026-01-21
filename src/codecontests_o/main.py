@@ -171,7 +171,7 @@ Examples:
         config.openai.api_base = args.api_base
     else:
         # Read from environment variables
-        env_api_base = os.getenv("OPENAI_API_BASE")
+        env_api_base = os.getenv("OPENAI_BASE_URL")
         if env_api_base:
             config.openai.api_base = env_api_base
     if args.api_key:
