@@ -4,13 +4,13 @@
 
 ### Feedback-Driven Iterative Test Case Generation Framework
 
-[![arXiv](https://img.shields.io/badge/arXiv-2501.xxxxx-b31b1b.svg)](https://arxiv.org/abs/2501.xxxxx)
+[![arXiv](https://img.shields.io/badge/arXiv-2601.13682-b31b1b.svg)](https://arxiv.org/abs/2601.13682)
 [![Hugging Face Dataset](https://img.shields.io/badge/🤗%20Hugging%20Face-Dataset-yellow)](https://huggingface.co/datasets/caijanfeng/CodeContests-O)
 [![GitHub](https://img.shields.io/badge/GitHub-Code-blue?logo=github)](https://github.com/cai-jianfeng/CodeContests-O)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-[📄 Paper](https://arxiv.org/abs/2501.xxxxx) | [🤗 Dataset](https://huggingface.co/datasets/caijanfeng/CodeContests-O) | [💻 Code](https://github.com/cai-jianfeng/CodeContests-O) | [🧪 Sandbox](https://github.com/cai-jianfeng/SandboxFusion)
+[📄 Paper](https://arxiv.org/abs/2601.13682) | [🤗 Dataset](https://huggingface.co/datasets/caijanfeng/CodeContests-O) | [💻 Code](https://github.com/cai-jianfeng/CodeContests-O) | [🧪 Sandbox](https://github.com/cai-jianfeng/SandboxFusion)
 
 </div>
 
@@ -337,11 +337,14 @@ codecontests_o/
 
 If you find this work useful, please cite our paper:
 ```bibtex
-@article{cai2025codecontestso,
-  title={CodeContests-O: A Feedback-Driven Iterative Framework for Test Case Generation},
-  author={Cai, Jianfeng and others},
-  journal={arXiv preprint arXiv:2501.xxxxx},
-  year={2025}
+@misc{cai2026codecontestsopoweringllmsfeedbackdriven,
+      title={CodeContests-O: Powering LLMs via Feedback-Driven Iterative Test Case Generation}, 
+      author={Jianfeng Cai and Jinhua Zhu and Ruopei Sun and Kangwen Zhao and Dongyun Xue and Mingxiao Feng and Wengang Zhou and Houqiang Li},
+      year={2026},
+      eprint={2601.13682},
+      archivePrefix={arXiv},
+      primaryClass={cs.SE},
+      url={https://arxiv.org/abs/2601.13682}, 
 }
 ```
 
